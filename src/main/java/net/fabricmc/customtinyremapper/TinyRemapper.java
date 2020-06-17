@@ -15,11 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.fabricmc.tinyremapper;
+package net.fabricmc.customtinyremapper;
 
-import net.fabricmc.tinyremapper.IMappingProvider.MappingAcceptor;
-import net.fabricmc.tinyremapper.IMappingProvider.Member;
-import net.fabricmc.tinyremapper.MemberInstance.MemberType;
 import org.objectweb.asm.*;
 import org.objectweb.asm.commons.Remapper;
 import org.objectweb.asm.util.CheckClassAdapter;
@@ -27,10 +24,7 @@ import org.objectweb.asm.util.CheckClassAdapter;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
-import java.util.concurrent.*;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -330,7 +324,7 @@ public class TinyRemapper {
 
 			@Override
 			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-				MemberInstance prev = ret.addMember(new MemberInstance(MemberType.METHOD, ret, name, desc, access));
+				MemberInstance prev = ret.addMember(new MemberInstance(MemberInstance.MemberType.METHOD, ret, name, desc, access));
 				if (prev != null) throw new RuntimeException(String.format("duplicate method %s/%s%s in inputs", ret.getName(), name, desc));
 
 				return super.visitMethod(access, name, desc, signature, exceptions);
@@ -338,7 +332,7 @@ public class TinyRemapper {
 
 			@Override
 			public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
-				MemberInstance prev = ret.addMember(new MemberInstance(MemberType.FIELD, ret, name, desc, access));
+				MemberInstance prev = ret.addMember(new MemberInstance(MemberInstance.MemberType.FIELD, ret, name, desc, access));
 				if (prev != null) throw new RuntimeException(String.format("duplicate field %s/%s;;%s in inputs", ret.getName(), name, desc));
 
 				return super.visitField(access, name, desc, signature, value);
@@ -354,7 +348,7 @@ public class TinyRemapper {
 	}
 
 	private void loadMappings() {
-		MappingAcceptor acceptor = new MappingAcceptor() {
+		IMappingProvider.MappingAcceptor acceptor = new IMappingProvider.MappingAcceptor() {
 			@Override
 			public void acceptClass(String srcName, String dstName) {
 				if (srcName == null) throw new NullPointerException("null src name");
@@ -364,7 +358,7 @@ public class TinyRemapper {
 			}
 
 			@Override
-			public void acceptMethod(Member method, String dstName) {
+			public void acceptMethod(IMappingProvider.Member method, String dstName) {
 				if (method == null) throw new NullPointerException("null src method");
 				if (method.owner == null) throw new NullPointerException("null src method owner");
 				if (method.name == null) throw new NullPointerException("null src method name");
@@ -375,7 +369,7 @@ public class TinyRemapper {
 			}
 
 			@Override
-			public void acceptMethodArg(Member method, int lvIndex, String dstName) {
+			public void acceptMethodArg(IMappingProvider.Member method, int lvIndex, String dstName) {
 				if (method == null) throw new NullPointerException("null src method");
 				if (method.owner == null) throw new NullPointerException("null src method owner");
 				if (method.name == null) throw new NullPointerException("null src method name");
@@ -386,7 +380,7 @@ public class TinyRemapper {
 			}
 
 			@Override
-			public void acceptMethodVar(Member method, int lvIndex, int startOpIdx, int asmIndex, String dstName) {
+			public void acceptMethodVar(IMappingProvider.Member method, int lvIndex, int startOpIdx, int asmIndex, String dstName) {
 				if (method == null) throw new NullPointerException("null src method");
 				if (method.owner == null) throw new NullPointerException("null src method owner");
 				if (method.name == null) throw new NullPointerException("null src method name");
@@ -398,7 +392,7 @@ public class TinyRemapper {
 			}
 
 			@Override
-			public void acceptField(Member field, String dstName) {
+			public void acceptField(IMappingProvider.Member field, String dstName) {
 				if (field == null) throw new NullPointerException("null src field");
 				if (field.owner == null) throw new NullPointerException("null src field owner");
 				if (field.name == null) throw new NullPointerException("null src field name");
@@ -483,24 +477,24 @@ public class TinyRemapper {
 			tasks.add(entry);
 
 			if (tasks.size() >= maxTasks) {
-				futures.add(threadPool.submit(new Propagation(MemberType.METHOD, tasks)));
+				futures.add(threadPool.submit(new Propagation(MemberInstance.MemberType.METHOD, tasks)));
 				tasks.clear();
 			}
 		}
 
-		futures.add(threadPool.submit(new Propagation(MemberType.METHOD, tasks)));
+		futures.add(threadPool.submit(new Propagation(MemberInstance.MemberType.METHOD, tasks)));
 		tasks.clear();
 
 		for (Map.Entry<String, String> entry : fieldMap.entrySet()) {
 			tasks.add(entry);
 
 			if (tasks.size() >= maxTasks) {
-				futures.add(threadPool.submit(new Propagation(MemberType.FIELD, tasks)));
+				futures.add(threadPool.submit(new Propagation(MemberInstance.MemberType.FIELD, tasks)));
 				tasks.clear();
 			}
 		}
 
-		futures.add(threadPool.submit(new Propagation(MemberType.FIELD, tasks)));
+		futures.add(threadPool.submit(new Propagation(MemberInstance.MemberType.FIELD, tasks)));
 		tasks.clear();
 
 		waitForAll(futures);
@@ -577,7 +571,7 @@ public class TinyRemapper {
 				System.out.printf("  %s %s %s (%s) -> %s%n", member.cls.getName(), member.type.name(), member.name, member.desc, names);
 
 				if (ignoreConflicts) {
-					Map<String, String> mappings = member.type == MemberType.METHOD ? methodMap : fieldMap;
+					Map<String, String> mappings = member.type == MemberInstance.MemberType.METHOD ? methodMap : fieldMap;
 					String mappingName = mappings.get(member.cls.getName()+"/"+member.getId());
 
 					if (mappingName == null) { // no direct mapping match, try parents
@@ -705,7 +699,7 @@ public class TinyRemapper {
 
 				String mappedName, mappedDesc;
 
-				if (member.type == MemberType.FIELD) {
+				if (member.type == MemberInstance.MemberType.FIELD) {
 					mappedName = remapper.mapFieldName(cls.getName(), member.name, member.desc);
 					mappedDesc = remapper.mapDesc(member.desc);
 				} else {
@@ -758,7 +752,7 @@ public class TinyRemapper {
 		return writer.toByteArray();
 	}
 
-	public AsmRemapper getRemapper() {
+	public net.fabricmc.customtinyremapper.AsmRemapper getRemapper() {
 		refresh();
 
 		return remapper;
@@ -778,7 +772,7 @@ public class TinyRemapper {
 		}
 	}
 
-	private static String getClassName(String nameDesc, MemberType type) {
+	private static String getClassName(String nameDesc, MemberInstance.MemberType type) {
 		int descStart = getDescStart(nameDesc, type);
 		int nameStart = nameDesc.lastIndexOf('/', descStart - 1);
 		if (nameStart == -1) nameStart = 0;
@@ -786,7 +780,7 @@ public class TinyRemapper {
 		return nameDesc.substring(0, nameStart);
 	}
 
-	private static String stripClassName(String nameDesc, MemberType type) {
+	private static String stripClassName(String nameDesc, MemberInstance.MemberType type) {
 		int descStart = getDescStart(nameDesc, type);
 		int nameStart = nameDesc.lastIndexOf('/', descStart - 1);
 		if (nameStart == -1) nameStart = 0;
@@ -794,10 +788,10 @@ public class TinyRemapper {
 		return nameDesc.substring(nameStart + 1);
 	}
 
-	private static int getDescStart(String nameDesc, MemberType type) {
+	private static int getDescStart(String nameDesc, MemberInstance.MemberType type) {
 		int ret;
 
-		if (type == MemberType.METHOD) {
+		if (type == MemberInstance.MemberType.METHOD) {
 			ret = nameDesc.indexOf('(');
 		} else {
 			ret = nameDesc.indexOf(";;");
@@ -815,7 +809,7 @@ public class TinyRemapper {
 	}
 
 	class Propagation implements Runnable {
-		Propagation(MemberType type, List<Map.Entry<String, String> > tasks) {
+		Propagation(MemberInstance.MemberType type, List<Map.Entry<String, String> > tasks) {
 			this.type = type;
 			this.tasks.addAll(tasks);
 		}
@@ -856,7 +850,7 @@ public class TinyRemapper {
 			}
 		}
 
-		private final MemberType type;
+		private final MemberInstance.MemberType type;
 		private final List<Map.Entry<String, String> > tasks = new ArrayList<Map.Entry<String,String> >();
 	}
 
@@ -888,7 +882,7 @@ public class TinyRemapper {
 	final boolean ignoreFieldDesc;
 	private final int threadCount;
 	private final ExecutorService threadPool;
-	private final AsmRemapper remapper = new AsmRemapper(this);
+	private final net.fabricmc.customtinyremapper.AsmRemapper remapper = new net.fabricmc.customtinyremapper.AsmRemapper(this);
 
 	private boolean dirty = true;
 }

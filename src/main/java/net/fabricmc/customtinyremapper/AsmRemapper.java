@@ -15,13 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.fabricmc.tinyremapper;
+package net.fabricmc.customtinyremapper;
 
 import java.util.Locale;
 
 import org.objectweb.asm.commons.Remapper;
-
-import net.fabricmc.tinyremapper.MemberInstance.MemberType;
 
 class AsmRemapper extends Remapper {
 	public AsmRemapper(TinyRemapper remapper) {
@@ -41,7 +39,7 @@ class AsmRemapper extends Remapper {
 		ClassInstance cls = getClass(owner);
 		if (cls == null) return name;
 
-		MemberInstance member = cls.resolve(MemberType.FIELD, MemberInstance.getFieldId(name, desc, remapper.ignoreFieldDesc));
+		MemberInstance member = cls.resolve(MemberInstance.MemberType.FIELD, MemberInstance.getFieldId(name, desc, remapper.ignoreFieldDesc));
 		String newName;
 
 		if (member != null && (newName = member.getNewName()) != null) {
@@ -58,7 +56,7 @@ class AsmRemapper extends Remapper {
 		ClassInstance cls = getClass(owner);
 		if (cls == null) return name; // TODO: try to map these from just the mappings?, warn if actual class is missing
 
-		MemberInstance member = cls.resolve(MemberType.METHOD, MemberInstance.getMethodId(name, desc));
+		MemberInstance member = cls.resolve(MemberInstance.MemberType.METHOD, MemberInstance.getMethodId(name, desc));
 		String newName;
 
 		if (member != null && (newName = member.getNewName()) != null) {
@@ -74,7 +72,7 @@ class AsmRemapper extends Remapper {
 		ClassInstance cls = getClass(owner);
 		if (cls == null) return name;
 
-		MemberInstance member = cls.resolvePartial(MemberType.METHOD, name, descPrefix);
+		MemberInstance member = cls.resolvePartial(MemberInstance.MemberType.METHOD, name, descPrefix);
 		String newName;
 
 		if (member != null && (newName = member.getNewName()) != null) {
@@ -99,7 +97,7 @@ class AsmRemapper extends Remapper {
 		ClassInstance cls = getClass(methodOwner);
 		if (cls == null) return name;
 
-		MemberInstance originatingMethod = cls.resolve(MemberType.METHOD, MemberInstance.getMethodId(methodName, methodDesc));
+		MemberInstance originatingMethod = cls.resolve(MemberInstance.MemberType.METHOD, MemberInstance.getMethodId(methodName, methodDesc));
 		if (originatingMethod == null) return name;
 
 		String originatingNewName = remapper.methodArgMap.get(originatingMethod.newNameOriginatingCls+"/"+MemberInstance.getMethodId(originatingMethod.name, originatingMethod.desc)+lvIndex);
@@ -114,7 +112,7 @@ class AsmRemapper extends Remapper {
 	/**
 	 * Check if a class can access a specific member, printing and recording failure for later.
 	 */
-	public void checkPackageAccess(String accessingOwner, String owner, String name, String desc, MemberType type) {
+	public void checkPackageAccess(String accessingOwner, String owner, String name, String desc, MemberInstance.MemberType type) {
 		ClassInstance cls = getClass(owner);
 		if (cls == null) return;
 
@@ -181,7 +179,7 @@ class AsmRemapper extends Remapper {
 
 		String mappedName, mappedDesc;
 
-		if (type == MemberType.FIELD) {
+		if (type == MemberInstance.MemberType.FIELD) {
 			mappedName = mapFieldName(owner, name, desc);
 			mappedDesc = mapDesc(desc);
 		} else {

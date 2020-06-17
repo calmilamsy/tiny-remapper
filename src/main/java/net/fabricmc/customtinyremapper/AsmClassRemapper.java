@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.fabricmc.tinyremapper;
+package net.fabricmc.customtinyremapper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -43,10 +43,10 @@ import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.ParameterNode;
 
-import net.fabricmc.tinyremapper.MemberInstance.MemberType;
+import net.fabricmc.customtinyremapper.MemberInstance.MemberType;
 
 class AsmClassRemapper extends ClassRemapper {
-	public AsmClassRemapper(ClassVisitor cv, AsmRemapper remapper, boolean checkPackageAccess, boolean skipLocalMapping, boolean renameInvalidLocals) {
+	public AsmClassRemapper(ClassVisitor cv, net.fabricmc.customtinyremapper.AsmRemapper remapper, boolean checkPackageAccess, boolean skipLocalMapping, boolean renameInvalidLocals) {
 		super(cv, remapper);
 
 		this.checkPackageAccess = checkPackageAccess;
@@ -155,7 +155,7 @@ class AsmClassRemapper extends ClassRemapper {
 		@Override
 		public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
 			if (checkPackageAccess) {
-				((AsmRemapper) remapper).checkPackageAccess(this.owner, owner, name, descriptor, MemberType.FIELD);
+				((net.fabricmc.customtinyremapper.AsmRemapper) remapper).checkPackageAccess(this.owner, owner, name, descriptor, MemberType.FIELD);
 			}
 
 			super.visitFieldInsn(opcode, owner, name, descriptor);
@@ -164,7 +164,7 @@ class AsmClassRemapper extends ClassRemapper {
 		@Override
 		public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
 			if (checkPackageAccess) {
-				((AsmRemapper) remapper).checkPackageAccess(this.owner, owner, name, descriptor, MemberType.METHOD);
+				((net.fabricmc.customtinyremapper.AsmRemapper) remapper).checkPackageAccess(this.owner, owner, name, descriptor, MemberType.METHOD);
 			}
 
 			super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
@@ -266,7 +266,7 @@ class AsmClassRemapper extends ClassRemapper {
 								if (start.getOpcode() >= 0) startOpIdx++;
 							}
 
-							lv.name = ((AsmRemapper) remapper).mapMethodVar(owner, methodNode.name, methodNode.desc, lv.index, startOpIdx, i, lv.name);
+							lv.name = ((net.fabricmc.customtinyremapper.AsmRemapper) remapper).mapMethodVar(owner, methodNode.name, methodNode.desc, lv.index, startOpIdx, i, lv.name);
 
 							if (renameInvalidLocals && isValidJavaIdentifier(lv.name)) { // block valid name from generation
 								nameCounts.putIfAbsent(lv.name, 1);
@@ -281,7 +281,7 @@ class AsmClassRemapper extends ClassRemapper {
 			// remap args
 			if (!skipLocalMapping) {
 				for (int i = 0; i < args.length; i++) {
-					args[i] = ((AsmRemapper) remapper).mapMethodArg(owner, methodNode.name, methodNode.desc, getLvIndex(i, isStatic, argTypes), args[i]);
+					args[i] = ((net.fabricmc.customtinyremapper.AsmRemapper) remapper).mapMethodArg(owner, methodNode.name, methodNode.desc, getLvIndex(i, isStatic, argTypes), args[i]);
 
 					if (renameInvalidLocals && isValidJavaIdentifier(args[i])) { // block valid name from generation
 						nameCounts.putIfAbsent(args[i], 1);
@@ -620,7 +620,7 @@ class AsmClassRemapper extends ClassRemapper {
 						if (name == null) { // used for default annotation values
 							newName = null;
 						} else {
-							newName = ((AsmRemapper) remapper).mapMethodNamePrefixDesc(annotationClass, name, "()[");
+							newName = ((net.fabricmc.customtinyremapper.AsmRemapper) remapper).mapMethodNamePrefixDesc(annotationClass, name, "()[");
 						}
 
 						av = AsmAnnotationRemapper.this.av.visitArray(newName);

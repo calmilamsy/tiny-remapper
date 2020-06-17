@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.fabricmc.tinyremapper;
+package net.fabricmc.customtinyremapper;
 
 import java.nio.file.Path;
 import java.util.ArrayDeque;
@@ -32,11 +32,10 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.objectweb.asm.Opcodes;
 
-import net.fabricmc.tinyremapper.MemberInstance.MemberType;
-import net.fabricmc.tinyremapper.TinyRemapper.Direction;
+import net.fabricmc.customtinyremapper.TinyRemapper.Direction;
 
 public final class ClassInstance {
-	ClassInstance(TinyRemapper context, boolean isInput, Path srcFile, byte[] data) {
+	ClassInstance(net.fabricmc.customtinyremapper.TinyRemapper context, boolean isInput, Path srcFile, byte[] data) {
 		this.context = context;
 		this.isInput = isInput;
 		this.srcPath = srcFile;
@@ -78,7 +77,7 @@ public final class ClassInstance {
 		return members.values();
 	}
 
-	public MemberInstance getMember(MemberType type, String id) {
+	public MemberInstance getMember(MemberInstance.MemberType type, String id) {
 		return members.get(id);
 	}
 
@@ -94,7 +93,7 @@ public final class ClassInstance {
 	 * @param idDst New name.
 	 * @param dir Futher propagation direction.
 	 */
-	void propagate(TinyRemapper remapper, MemberType type, String originatingCls, String idSrc, String nameDst, Direction dir, boolean isVirtual, boolean first, Set<ClassInstance> visitedUp, Set<ClassInstance> visitedDown) {
+	void propagate(net.fabricmc.customtinyremapper.TinyRemapper remapper, MemberInstance.MemberType type, String originatingCls, String idSrc, String nameDst, Direction dir, boolean isVirtual, boolean first, Set<ClassInstance> visitedUp, Set<ClassInstance> visitedDown) {
 		/*
 		 * initial private member or static method in interface: only local
 		 * non-virtual: up to matching member (if not already in this), then down until matching again (exclusive)
@@ -122,11 +121,11 @@ public final class ClassInstance {
 
 			if (first
 					&& ((member.access & Opcodes.ACC_PRIVATE) != 0 // private members don't propagate, but they may get skipped over by overriding virtual methods
-					|| type == MemberType.METHOD && isInterface() && !isVirtual)) { // non-virtual interface methods don't propagate either, the jvm only resolves direct accesses to them
+					|| type == MemberInstance.MemberType.METHOD && isInterface() && !isVirtual)) { // non-virtual interface methods don't propagate either, the jvm only resolves direct accesses to them
 				return;
 			}
 		} else { // member == null
-			assert !first && (type == MemberType.FIELD || !isInterface() || isVirtual);
+			assert !first && (type == MemberInstance.MemberType.FIELD || !isInterface() || isVirtual);
 
 			// potentially intermediately accessed location, handled through resolution in the remapper
 		}
@@ -167,7 +166,7 @@ public final class ClassInstance {
 		}
 	}
 
-	public MemberInstance resolve(MemberType type, String id) {
+	public MemberInstance resolve(MemberInstance.MemberType type, String id) {
 		MemberInstance member = getMember(type, id);
 		if (member != null) return member;
 
@@ -187,8 +186,8 @@ public final class ClassInstance {
 		return member != nullMember ? member : null;
 	}
 
-	private MemberInstance resolve0(MemberType type, String id) {
-		boolean isField = type == MemberType.FIELD;
+	private MemberInstance resolve0(MemberInstance.MemberType type, String id) {
+		boolean isField = type == MemberInstance.MemberType.FIELD;
 		Set<ClassInstance> visited = Collections.newSetFromMap(new IdentityHashMap<>());
 		Deque<ClassInstance> queue = new ArrayDeque<>();
 		visited.add(this);
@@ -256,9 +255,9 @@ public final class ClassInstance {
 		return secondaryMatch != null ? secondaryMatch : nullMember;
 	}
 
-	public MemberInstance resolvePartial(MemberType type, String name, String descPrefix) {
+	public MemberInstance resolvePartial(MemberInstance.MemberType type, String name, String descPrefix) {
 		String idPrefix = MemberInstance.getId(type, name, descPrefix != null ? descPrefix : "", context.ignoreFieldDesc);
-		boolean isField = type == MemberType.FIELD;
+		boolean isField = type == MemberInstance.MemberType.FIELD;
 
 		MemberInstance member = getMemberPartial(type, idPrefix);
 		if (member == nullMember) return null; // non-unique match
@@ -357,7 +356,7 @@ public final class ClassInstance {
 		}
 	}
 
-	private MemberInstance getMemberPartial(MemberType type, String idPrefix) {
+	private MemberInstance getMemberPartial(MemberInstance.MemberType type, String idPrefix) {
 		MemberInstance ret = null;
 
 		for (Map.Entry<String, MemberInstance> entry : members.entrySet()) {

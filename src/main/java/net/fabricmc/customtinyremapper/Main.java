@@ -15,7 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.fabricmc.tinyremapper;
+package net.fabricmc.customtinyremapper;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -172,7 +172,7 @@ public class Main {
 
 		long startTime = System.nanoTime();
 
-		TinyRemapper remapper = TinyRemapper.newRemapper()
+		net.fabricmc.customtinyremapper.TinyRemapper remapper = TinyRemapper.newRemapper()
 				.withMappings(TinyUtils.createTinyMappingProvider(mappings, fromM, toM))
 				.ignoreFieldDesc(ignoreFieldDesc)
 				.withForcedPropagation(forcePropagation)
@@ -187,7 +187,7 @@ public class Main {
 				.renameInvalidLocals(renameInvalidLocals)
 				.build();
 
-		try (OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build()) {
+		try (net.fabricmc.customtinyremapper.OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build()) {
 			outputConsumer.addNonClassFiles(input, ncCopyMode, remapper);
 
 			remapper.readInputs(input);

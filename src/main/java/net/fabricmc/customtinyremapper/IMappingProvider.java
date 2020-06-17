@@ -15,10 +15,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.fabricmc.tinyremapper;
+package net.fabricmc.customtinyremapper;
 
-public enum NonClassCopyMode {
-	UNCHANGED,
-	FIX_META_INF,
-	SKIP_META_INF
+@FunctionalInterface
+public interface IMappingProvider {
+	void load(MappingAcceptor out);
+
+	public interface MappingAcceptor {
+		void acceptClass(String srcName, String dstName);
+		void acceptMethod(Member method, String dstName);
+		void acceptMethodArg(Member method, int lvIndex, String dstName);
+		void acceptMethodVar(Member method, int lvIndex, int startOpIdx, int asmIndex, String dstName);
+		void acceptField(Member field, String dstName);
+	}
+
+	public final class Member {
+		public Member(String owner, String name, String desc) {
+			this.owner = owner;
+			this.name = name;
+			this.desc = desc;
+		}
+
+		public String owner;
+		public String name;
+		public String desc;
+	}
 }

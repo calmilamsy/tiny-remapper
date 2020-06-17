@@ -15,14 +15,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.fabricmc.tinyremapper;
+package net.fabricmc.customtinyremapper;
 
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import org.objectweb.asm.Opcodes;
 
 public final class MemberInstance {
-	MemberInstance(MemberInstance.MemberType type, ClassInstance cls, String name, String desc, int access) {
+	MemberInstance(MemberInstance.MemberType type, net.fabricmc.customtinyremapper.ClassInstance cls, String name, String desc, int access) {
 		this.type = type;
 		this.cls = cls;
 		this.name = name;
